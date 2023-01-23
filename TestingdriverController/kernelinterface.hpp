@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma warning (disable : 4700)
+
 #include "communication.hpp"
 
 class KernelInterface {
@@ -20,6 +22,21 @@ public:
 
 		if (DeviceIoControl(hDriver, IO_GET_CLIENTADDRESS, &Address, sizeof(Address), &Address, sizeof(Address), &Bytes, NULL)) {
 			return Address;
+		}
+
+		return 0;
+	}
+
+	DWORD GetProcessID() {
+		if (hDriver == INVALID_HANDLE_VALUE) {
+			return 0;
+		}
+
+		ULONG ProcessID;
+		DWORD Bytes;
+
+		if (DeviceIoControl(hDriver, IO_REQUEST_PROCESSID, &ProcessID, sizeof(ProcessID), &ProcessID, sizeof(ProcessID), &Bytes, NULL)) {
+			return ProcessID;
 		}
 
 		return 0;
@@ -49,11 +66,13 @@ public:
 	}
 
 	template <typename type>
-	bool WriteVirtualMemory(ULONG ProcessId, ULONG WriteAddress, SIZE_T Size, type val) {
+	bool WriteVirtualMemory(ULONG ProcessId, ULONG WriteAddress, type val, SIZE_T Size) {
 
 		if (hDriver == INVALID_HANDLE_VALUE) {
 			return false;
 		}
+
+		DWORD Bytes;
 
 		KERNEL_WRITE_REQUEST WriteRequest;
 
@@ -62,7 +81,7 @@ public:
 		WriteRequest.pBuff = &val;
 		WriteRequest.Size = Size;
 
-		if (DeviceIoControl(hDriver, IO_WRITE_REQUEST, &WriteRequest, sizeof(WriteRequest), &WriteRequest, sizeof(WriteRequest), 0, 0)) {
+		if (DeviceIoControl(hDriver, IO_WRITE_REQUEST, &WriteRequest, sizeof(WriteRequest), 0, 0, &Bytes, NULL)) {
 			return true;
 		}
 
